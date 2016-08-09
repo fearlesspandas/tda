@@ -1,4 +1,5 @@
 import random
+simpdata = []
 
 
 
@@ -64,7 +65,9 @@ def getdecomposition(s): #takes a list of homogenous (same dimension) faces
             lowersimps.append(lowface)
             lowersimps = lowersimps + getdecomposition([lowface])
     return lowersimps
-def decomp(s,p):
+
+
+def decomp(s,p = 0):
     if len(s) == 1:
         return []
     else:
@@ -74,6 +77,20 @@ def decomp(s,p):
             s_low.remove(s[len(s)-1-i])
             lowsimps.append(s_low)
             lowsimps = lowsimps + decomp(s_low,i)
+        return lowsimps
+
+def decomptodim(s,p,ku,kl = 0):
+    if len(s) == 1:
+        return []
+    else:
+        lowsimps = []
+        for i in range(p,len(s)):
+            s_low = s.copy()
+            s_low.remove(s[len(s)-1-i])
+            if len(s) < ku +1:
+                lowsimps.append(s_low)
+            if len(s)>kl+1:
+                lowsimps = lowsimps + decomptodim(s_low,i,ku,kl)
         return lowsimps
 
 def getFulldecomposition(s):
@@ -110,13 +127,14 @@ def mergelists(a,b):
     else:
         return b
 def islessthan(a,b):
-    if type(a) == int:
+    if type(a) == int and type(b) == int:
         if a<b:
             return True
         else:
             return False
     if len(a) != len(b) or len(a) == 0 or len(b) == 0: #this is new, may need to be changed
         return False
+    n = min(len(a),len(b))
     for i in range(0,len(a)):
         if len(a) == 1 and len(b) == 1:
             a = a[0]
@@ -127,7 +145,7 @@ def islessthan(a,b):
         elif a[i] > b[i]:
             return False
     return False
-    
+
 def quicksort(a): #returns lexicographically sorted list
     if len(a) <= 1:
         return a
@@ -148,18 +166,17 @@ def quicksort_dim(a):
     if len(a) <= 1:
         return a
     p = random.randrange(0,len(a))
-
     piv = len(a[p][0])
+    a_p = a[p]
     c = []
     d = []
     for i in range(0,len(a)):
-
         dim = len(a[i][0])
         if dim < piv and i != p:
             c.append(a[i])
-        elif dim > piv and i !=p:
+        if dim > piv and i !=p:
             d.append(a[i])
-    a = quicksort_dim(c) + [a[p]] + quicksort(d)
+    a = quicksort_dim(c) + [a_p] + quicksort_dim(d)
     return a
 
 def sortsimplices(s):
@@ -169,11 +186,18 @@ def sortsimplices(s):
     return s
 
 def getsimplicialdata(s):
-    sd = getsimplicialdata_basic(s)
-    sdc = getFulldecomp(sd)
-    dimsdc = group_by_dim(sdc,s)
-    merged = mergelists(dimsdc,sd)
+    sd = getsimplicialdata_basic(s.copy())
+    sdc = getFulldecomp(sd.copy())
+    dimsdc = group_by_dim(sdc.copy(),s.copy())
+    merged = mergelists(dimsdc.copy(),sd.copy())
     sortedsimps = sortsimplices(merged)
     return sortedsimps
 
 
+#simps = getsimplicialdata(simpdata)
+#print("__simpdata__",simps)
+#TDA.set_simplicial_data(simps)
+
+#relz = [[[0,1],[2,3]]]
+#TDA.set_rel_set(relz)
+#TDA.startDelta()
