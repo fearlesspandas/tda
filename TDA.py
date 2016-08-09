@@ -1,13 +1,19 @@
 from sympy import *
-import random,Delta
+import random,Delta,combin,time,math
 
 global matrix,Big_matrix,rel_matrix,mth,style,gen_data,simp_li,rel_set,simplicial_data
 
-rel_set = []
+rel_set = [] # may or may not need to sort list first, collection of face collections
+#rel_set = [[[0,1],[3,4],[4,5]]]
+#simplicial_data = [[(0),(1),(2),(3),(4),(5),(6)],[(0,1),(0,2),(1,2),(3,4),(3,5),(4,5)],[((0,1),(0,2),(1,2)),((3,4),(3,5),(4,5))]] #the nth slot contains n dimensional simplices
+                    #simplicial data should be ordered lexicographically
 
 simplicial_data = []
 simp_li = []
 gen_data = []
+#modify to enter just disjoint simplices
+
+#simplicial_data = [[[0],[1],[2],[3]],[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3],[3,4],[3,5],[4,5]],[[0,1,2],[0,2,3],[0,1,3],[1,2,3],[3,4,5]],[[0,1,2,3]]]
 
 matrix = []
 Big_matrix = []
@@ -19,10 +25,26 @@ def set_gen_data(s):
     global gen_data,simp_li,simplicial_data
     gen_data = s
     simp_li = Delta.getsimplicialdata_basic(s)
-    simplicial_data = Delta.getsimplicialdata(s)
+    stupid = Delta.getsimplicialdata(s)
+    simplicial_data = stupid.copy()
     rel_matrix_init()
-    boundary_init()
-
+    boundaryinit()
+def timetest(t,s):
+    maxdim = simplicial_data[len(simplicial_data)-1]
+    maxv = maxdim[len(maxdim) - 1]
+    maxv = 4
+    start1 = time.time()
+    for i in range(0,t):
+        findsimp(s,len(s)-1)
+    end1 = time.time()
+    e1 = end1-start1
+    start2 = time.time()
+    for u in range(0,t):
+        #combin.findpos(s,0,maxv)
+        findsimp2(s,len(s)-1)
+    end2 = time.time()
+    e2 = end2-start2
+    return [e1,e2]
 #m = zeros(len(simplicial_data[0]),len(simplicial_data[1]))
 def init_data(title):
     rawsimps = []
@@ -122,7 +144,7 @@ def quicksort_dim(a):
             c.append(a[i])
         elif dim > piv and i !=p:
             d.append(a[i])
-    a = quicksort_dim(c) + [a[p]] + quicksort(d)
+    a = quicksort_dim(c) + [a[p]] + quicksort_dim(d)
     return a
 
 def sortsimplices(s):
@@ -147,6 +169,27 @@ def rel_matrix_init(): #creates identity matrix among simplices
                     a[x].append(0)
         m = Matrix(a)
         rel_matrix.append(m)
+
+def findsimp2(simp,dim): #this could definitely be improved for speed
+    if type(simp) == int:
+        simp = [simp]
+    n = len(simplicial_data[dim])
+    i = 0
+    while i + 3 < n:
+        if simp == simplicial_data[dim][i]:
+            return i
+        if simp == simplicial_data[dim][i+1]:
+            return i + 1
+        if simp == simplicial_data[dim][i+2]:
+            return i + 2
+        if simp == simplicial_data[dim][i+3]:
+            return i + 3
+        i = i + 4
+    while i < n:
+        if simp == simplicial_data[dim][i]:
+            return i
+
+    return False
 
 def findsimp(simp,dim): #this could definitely be improved for speed
     if type(simp) == int:
@@ -366,31 +409,54 @@ def getgenerator(dim): #returns the generator of a given n-dimension simplicy
         if gen_data[i][1] == dim + 1:
             return gen_data[i]
     return [0,dim + 1]
+def getmin(dim):
+    i = 0
+    count = 0
+    while gen_data[i][0]<dim:
+        count = count + gen_data[i][0]*gen_data[i][1]
+    return count
 
-def boundarydecomp(s,p,t):#will take a linearly independent simplicie s and update its boundary
-    global matrix          # as well as the boundaries of its decomposition. t is the order of
-    if type(s) == int:      #s among the linearly independent simplicial set
-        s = [s]
+pos = []
+
+def boundarydecomp(s,p,t,piv):#will take a linearly independent simplicie s and update its boundary
+    global matrix,pos          # as well as the boundaries of its decomposition. t is the order of
+    if type(s) == int:     #s among the linearly independent simplicial set, pos is the position list, piv is the current
+        s = [s]            #pivot, and parent index is the order of the linearly independent simplicie which contains s
     dim = len(s) - 1
     m = matrix[dim]
+    for x in range(0,len(s)):#updates missed boundaries of s
+        if len(s) <= 1:
+            break
+        if s[dim - x] > piv:
+            ss = s.copy()
+            ss.remove(s[dim-x])
+            bpos = findsimp(ss,len(ss) - 1)
+            if (dim-x)%2==0:
+                m[bpos,t] =  1
+            else:
+                m[bpos,t] = -1
+        else:
+            break
     for i in range(p,len(s)):
         if len(s) <= 1:
             break
-        g = getgenerator(dim - 1)
-        r = i + t*(dim+1) + g[0]
         s_low = s.copy()
-        s_low.remove(s[len(s)-1-i])
-        print('n',g[0],"t",t,'pos',r,'i',i)
+        newpiv = s[len(s)-1-i]
+        s_low.remove(newpiv)
+        #r = g[0] + combin.pos(s_low,getmin(dim),s[len(s)-1])
+        r = findsimp(s_low,len(s_low)-1)
+        #print('n',g[0],"t",t,'pos',r,'i',i)
         if (dim-i)%2 == 0:
-            print("+1",s_low)
+            #print("+1",s_low)
             m[r,t] = 1
         else:
-            print("-1",s_low)
+            #print("-1",s_low)
             m[r,t] = -1
-        boundarydecomp(s_low,0,r) #0 to i
+
+        boundarydecomp(s_low,i,r,newpiv)
 
 def boundaryinit():
-    global matrix
+    global matrix,pos
     matrix = []
     for x in range(0,len(simplicial_data)): #clears and prepares appropriate sized matrices
         cols = len(simplicial_data[x])
@@ -399,7 +465,8 @@ def boundaryinit():
     for i in range(0,len(simp_li)):
         n_simps = simp_li[i]
         for u in range(0,len(n_simps)):
-            boundarydecomp(n_simps[u],0,u)
+            pos = []
+            boundarydecomp(n_simps[u],0,u,n_simps[u][len(n_simps[u])-1])
 
 
 def convert_to_equiv(r): #converts every element in a list of relations to
@@ -560,4 +627,24 @@ def startDelta():
         #print("____Matrix____",matrix)
         #print("____Big____",Big_matrix)
 
+def save_data(name,newstring):
+    try:
+        filr = open(name + '.txt','r')
+        a = filr.read()
+        filr.close()
+    except:
+        filr = open(name + '.txt','w')
+        filr.close()
+        a = ''
+    filw = open(name + '.txt','w')
+    b = '\n' + newstring
+    a = a + b
+    filw.write(a)
 
+
+#simplicial_data = sortsimplices(init_data('Simplicialdata.txt'))
+#rel_set = init_data('Relationdata.txt')
+#rel_matrix_init()
+#Big_matrix.append(boundary_init())
+#set_preferences()
+#input()
