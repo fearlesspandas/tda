@@ -1,8 +1,10 @@
 from sympy import *
 import random,Delta,combin,time,math
 
-global matrix,Big_matrix,rel_matrix,mth,style,gen_data,simp_li,rel_set,simplicial_data
+global matrix,Big_matrix,rel_matrix,mth,style,gen_data,simp_li,rel_set,simplicial_data,Tor,Kln
 
+Tor = [[[0,2],[3,5]],[[0,1],[4,5]],[[1,2],[3,4]]]
+Kln = [[[0,2],[3,5]],[[0,1],[4,5]],[[1,2],[3,4]]]
 rel_set = [] # may or may not need to sort list first, collection of face collections
 #rel_set = [[[0,1],[3,4],[4,5]]]
 #simplicial_data = [[(0),(1),(2),(3),(4),(5),(6)],[(0,1),(0,2),(1,2),(3,4),(3,5),(4,5)],[((0,1),(0,2),(1,2)),((3,4),(3,5),(4,5))]] #the nth slot contains n dimensional simplices
@@ -367,6 +369,34 @@ def killdeadboundaries(matrix):
         choppedmatrix.append(m_copy)
     return choppedmatrix
 
+def killrows(mat):
+    newmat = [mat[0]]
+    for i in range(1,len(mat)):
+        m = mat[i]
+        newm = []
+        for u in range(0,len(simplicial_data[i-1])):
+            b = simplicial_data[i-1][u]
+            if  b == findrel(b):
+                newm.append(m.row(u))
+        newm = Matrix(newm)
+        newmat.append(newm)
+    return newmat
+
+def killcol(mat):
+    newmat = []
+    for i in range(0,len(mat)):
+        m = mat[i].T
+        newm = []
+        for u in range(0,len(simplicial_data[i])):
+            b = simplicial_data[i][u]
+            if  b == findrel(b):
+                newm.append(m.row(u))
+        newm = Matrix(newm)
+        newmat.append(newm.T)
+    return newmat
+
+
+
 def findrel(simp): #works
     if type(simp) == int:
         simp = [simp]
@@ -562,7 +592,7 @@ def delta_rowaddition():
         i = i + 1
     return matrix
 
-def delta_m(s):
+def delta_m(s = 'eq'):
     global Big_matrix,matrix,rel_set
     x = len(rel_set)
     if x == 0:
@@ -580,12 +610,22 @@ def delta_m(s):
         i = i + 1
 
     boundaries = []
-    for u in range(1,len(matrix)):
-        boundaries.append(rel_matrix[u-1]*matrix[u])
+    for u in range(0,len(matrix)):
+        if u == 0:
+            boundaries.append(matrix[u])
+        else:
+            boundaries.append(rel_matrix[u-1]*matrix[u])
     return boundaries
 
-
-
+def ker(k,mat): #takes matrix boundary list, and dimension k argument
+    m1 = mat[k]
+    b = m1.shape[0]
+    mi = eye(m1.shape[1])
+    m1 = m1.col_join(mi)
+    ma = m1.T.rref()[0].T
+    for i in range(0,b):
+        ma.row_del(0)
+    return ma
 def set_simplicial_data(s): #constructor for simplicial_data, also updates rel_matrix and boundary_init
     global simplicial_data
     simplicial_data = s
