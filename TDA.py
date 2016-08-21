@@ -6,17 +6,15 @@ global matrix,Big_matrix,rel_matrix,mth,style,gen_data,simp_li,rel_set,simplicia
 Tor = [[[0,2],[3,5]],[[0,1],[4,5]],[[1,2],[3,4]]]
 Kln = [[[0,2],[3,5]],[[0,1],[4,5]],[[1,2],[3,4]]]
 rel_set = [] # may or may not need to sort list first, collection of face collections
-#rel_set = [[[0,1],[3,4],[4,5]]]
-#simplicial_data = [[(0),(1),(2),(3),(4),(5),(6)],[(0,1),(0,2),(1,2),(3,4),(3,5),(4,5)],[((0,1),(0,2),(1,2)),((3,4),(3,5),(4,5))]] #the nth slot contains n dimensional simplices
-                    #simplicial data should be ordered lexicographically
+#rel_set = [[[0,1],[3,4],[4,5]]], first order list groups related faces lexicographically
 
 simplicial_data = []
 simp_li = []
 gen_data = []
-#modify to enter just disjoint simplices
 
 #simplicial_data = [[[0],[1],[2],[3]],[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3],[3,4],[3,5],[4,5]],[[0,1,2],[0,2,3],[0,1,3],[1,2,3],[3,4,5]],[[0,1,2,3]]]
-
+#the nth slot contains n dimensional simplices
+#simplicial data should be ordered lexicographically
 matrix = []
 Big_matrix = []
 rel_matrix = []
@@ -31,23 +29,21 @@ def set_gen_data(s):
     simplicial_data = stupid.copy()
     rel_matrix_init()
     boundaryinit()
-def timetest(t,s):
+def timetest(t):
     maxdim = simplicial_data[len(simplicial_data)-1]
     maxv = maxdim[len(maxdim) - 1]
     maxv = 4
     start1 = time.time()
     for i in range(0,t):
-        findsimp(s,len(s)-1)
+        boundary_init()
     end1 = time.time()
     e1 = end1-start1
     start2 = time.time()
     for u in range(0,t):
-        #combin.findpos(s,0,maxv)
-        findsimp2(s,len(s)-1)
+        boundaryinit()
     end2 = time.time()
     e2 = end2-start2
     return [e1,e2]
-#m = zeros(len(simplicial_data[0]),len(simplicial_data[1]))
 def init_data(title):
     rawsimps = []
     simps = []
@@ -104,7 +100,7 @@ def islessthan(a,b):
             return True
         else:
             return False
-    if len(a) != len(b) or len(a) == 0 or len(b) == 0: #this is new, may need to be changed
+    if len(a) != len(b) or len(a) == 0 or len(b) == 0:
         return False
     for i in range(0,len(a)):
         if len(a) == 1 and len(b) == 1:
@@ -131,7 +127,7 @@ def quicksort(a): #returns lexicographically sorted list
 
     a = quicksort(c) + [piv] + quicksort(d)
     return a #returns sorted list
-def quicksort_dim(a):
+def quicksort_dim(a): #returns a dimensionally ordered list of simplices which group homogeneous simplices
     if len(a) <= 1:
         return a
     p = random.randrange(0,len(a))
@@ -172,7 +168,7 @@ def rel_matrix_init(): #creates identity matrix among simplices
         m = Matrix(a)
         rel_matrix.append(m)
 
-def findsimp2(simp,dim): #this could definitely be improved for speed
+def findsimp2(simp,dim): #binary search with rollover
     if type(simp) == int:
         simp = [simp]
     n = len(simplicial_data[dim])
@@ -193,7 +189,7 @@ def findsimp2(simp,dim): #this could definitely be improved for speed
 
     return False
 
-def findsimp(simp,dim): #this could definitely be improved for speed
+def findsimp(simp,dim): #linear search, faster than binary for small cases
     if type(simp) == int:
         simp = [simp]
     for i in range(0,len(simplicial_data[dim])):
@@ -238,7 +234,7 @@ def find_local_rel(m,col):
         if m[i,col] == 1:
             return i
 
-def update_rel_matrix_ns(r):#update using an matrix that is not symmetric, partially transitive, takes a pair of relations only
+def update_rel_matrix_ns(r):#update using a matrix that is not symmetric, partially transitive, takes a pair of relations only
     r1 = convert_to_equiv([r])
     r = r1[0]
     r = quicksort(r)
@@ -300,7 +296,7 @@ def update_rel_matrix_nst(r): #not symmetric or transitive, takes a pair of rela
         return m
     m[a,b] = 1
     return m
-def update_rel_matrix_full(r,state):
+def update_rel_matrix_full(r,state): #updates relation matrix with a list of relations, where state is the type of matrix used
     top = findrel(r[0])
     for i in range(1,len(r)):
         if state == 'nst':
@@ -310,7 +306,7 @@ def update_rel_matrix_full(r,state):
         else:
             update_rel_matrix([top,findrel(r[i])])
 
-def killdeadchains():
+def killdeadchains(): #removes "dead/abosorbed" faces from the simplicial data set
     hitlist = [] #ordered in subgroups by dimension
     for i in range(0,len(rel_matrix)):
         m = rel_matrix[i]
@@ -332,49 +328,12 @@ def killdeadchains():
         simpdata[i] = simps
     return simpdata
 
-def killdeadboundaries(matrix):
-    rows = []
-    col = []
-    choppedmatrix = []
-    for i in range(0,len(simplicial_data)):
-        s_n = simplicial_data[i]
-        k = []
-        for u in range(0,len(s_n)):
-            if findrel(s_n[u]) != s_n[u]:
-                k.append(s_n[u])
-        if i != 0 and i != len(simplicial_data) - 1:
-            col.append(k)
-            rows.append(k)
-        elif i == 0:
-            rows.append(k)
-        elif i == len(simplicial_data) - 1:
-            col.append(k)
-    for j in range(1,len(matrix)):
-        n = 0
-        m = matrix[j]
-        m_copy = m.copy()
-        m_row = m_copy.shape[0]
-        while n < m_row and n < len(rows[j-1]):
-            placement = findsimp(rows[j-1][n],len(rows[j-1][n])-1)
-            m_copy.row_del(placement - n)
-            m_row = m_copy.shape[0]
-            n = n + 1
-        n = 0
-        m_col = m_copy.shape[1]
-        while n < m_col and n < len(col[j-1]):
-            placement = findsimp(col[j-1][n],len(col[j-1][n])-1)
-            m_copy.col_del(placement - n)
-            m_col= m_copy.shape[1]
-            n = n + 1
-        choppedmatrix.append(m_copy)
-    return choppedmatrix
-
-def killrows(mat):
+def killrows(mat): #removes absorbed rows from Matrix 'mat'
     newmat = [mat[0]]
-    for i in range(1,len(mat)):
+    for i in range(1,len(mat)): #cycles through dimensions in 'mat'
         m = mat[i]
         newm = []
-        for u in range(0,len(simplicial_data[i-1])):
+        for u in range(0,len(simplicial_data[i-1])):#removes absorbed rows in mat[dim]
             b = simplicial_data[i-1][u]
             if  b == findrel(b):
                 newm.append(m.row(u))
@@ -397,7 +356,7 @@ def killcol(mat):
 
 
 
-def findrel(simp): #works
+def findrel(simp): #finds the lowest order relation of face 'simp'
     if type(simp) == int:
         simp = [simp]
     dim = len(simp) - 1
@@ -411,7 +370,7 @@ def findrel(simp): #works
     return simplicial_data[dim][x]
 
 
-def boundary_init(): #updates matrix to boundary data with no relations observed
+def boundary_init(): #updates Global matrix to boundary data with no relations observed
     global matrix,simplicial_data
     matrix = []
     for i in range(0,len(simplicial_data)):
@@ -450,8 +409,8 @@ pos = []
 
 def boundarydecomp(s,p,t,piv):#will take a linearly independent simplicie s and update its boundary
     global matrix,pos          # as well as the boundaries of its decomposition. t is the order of
-    if type(s) == int:     #s among the linearly independent simplicial set, pos is the position list, piv is the current
-        s = [s]            #pivot, and parent index is the order of the linearly independent simplicie which contains s
+    if type(s) == int:     #s among the linearly independent simplicial set, piv is the current
+        s = [s]            #p is the rightbound for the decomposition DNC algorithm
     dim = len(s) - 1
     m = matrix[dim]
     for x in range(0,len(s)):#updates missed boundaries of s
