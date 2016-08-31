@@ -1,5 +1,5 @@
 from sympy import *
-import random,Delta,combin,time,math
+import random,Delta,time,math
 
 global matrix,Big_matrix,rel_matrix,mth,style,gen_data,simp_li,rel_set,simplicial_data,Tor,Kln
 
