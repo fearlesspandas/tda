@@ -354,7 +354,10 @@ def killcol(mat):
         newmat.append(newm.T)
     return newmat
 
-
+def pruneMatrix(mat):
+	mat = killcol(mat)
+	mat = killrows(mat)
+	return mat
 
 def findrel(simp): #finds the lowest order relation of face 'simp'
     if type(simp) == int:
@@ -585,6 +588,29 @@ def ker(k,mat): #takes matrix boundary list, and dimension k argument
     for i in range(0,b):
         ma.row_del(0)
     return ma
+	
+def getdegree(mat,col): #matrix argument, not list of matrices
+	deg = 0
+	for i in range(0,mat.shape[0]):
+		if mat[i,col] == 1:
+			deg = deg + 1
+	return deg
+def getAlldegrees(mat): #returns sorted list (by degree) of [degree,row]
+	deglist = []
+	for i in range(0,mat.shape[1]):
+		deglist.append([getdegree(mat,i),i])
+	return quicksort(deglist)
+	
+def ori(v_1,v_2):
+	if v_1.shape != v_2.shape:
+		return 0 
+	for i in range(0,v_1.shape[0]):
+		if v_1[i,0] != 0 and v_2[i,0] != 0 and abs(v_1[i,0]) == abs(v_2[i,0]):
+			if v_1[i,0] == v_2[i,0]:
+				return 1
+			else:
+				return -1
+
 def set_simplicial_data(s): #constructor for simplicial_data, also updates rel_matrix and boundary_init
     global simplicial_data
     simplicial_data = s
