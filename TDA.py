@@ -610,7 +610,14 @@ def ori(v_1,v_2):
 				return 1
 			else:
 				return -1
-
+def findneighbors(v,mat):
+	neigh = []
+	for i in range(0,mat.shape[1]):
+		v2 = mat.col(i)
+		if v2.T * v != 0*(v2.T * v) and v != v2:
+			neigh.append(v2.T)
+	return Matrix(neigh).T
+	
 def set_simplicial_data(s): #constructor for simplicial_data, also updates rel_matrix and boundary_init
     global simplicial_data
     simplicial_data = s
