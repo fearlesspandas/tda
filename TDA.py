@@ -579,15 +579,22 @@ def delta_m(s = 'eq'):
             boundaries.append(rel_matrix[u-1]*matrix[u])
     return boundaries
 
+
 def ker(k,mat): #takes matrix boundary list, and dimension k argument
     m1 = mat[k]
     b = m1.shape[0]
     mi = eye(m1.shape[1])
     m1 = m1.col_join(mi)
-    ma = m1.T.rref()[0].T
+    m = m1.T.rref()
+    ma = m[0].T
+    kermat = []
     for i in range(0,b):
         ma.row_del(0)
-    return ma
+        if m[1][0] < b:
+            m[1].remove(m[1][0])
+    for j in range(0,len(m[1])):
+        kermat.append(ma.col(ma.shape[1] -1 - j).T)
+    return Matrix(kermat).T
 	
 def getdegree(mat,col): #matrix argument, not list of matrices
 	deg = 0
