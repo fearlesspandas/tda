@@ -1,3 +1,5 @@
+#Cleaned up collection of funtions from TDA and Betti, with improvements
+
 def c(s,p):
     if len(s)==1:
         return[]
