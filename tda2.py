@@ -111,22 +111,29 @@ def setGenData(s,r = [],boundaryrel =None,steps = 0):
     master = M(s)
     D=[zeros(1,j(s,0))]
     d = s[len(s)-1][1]
-    for i in range(0,d): #initializes boundary matrix D
-        D.append(zeros(j(s,i),j(s,i+1)))
+    #initializes boundary matrix D
+    D = D + [zeros(j(s,i),j(s,i+1)) for i in range(0,d)]
     H.clear()
-    for i in range(0,2*len(master)): #initializes ordinal hash table H
-        H.append(0)
+    H = [0 for i in range(0,2*len(master))]
     c = 0
     for i in range(0,len(master)): #fills H with simplex positions
         n = h(master[i])%len(H)
+        flag = 0
         if len(master[i]) > len(master[i-1]):
             c = 0
         if H[n] == 0:
+            flag  = 1
             H[n] = [c,i,master[i],master[i]]
-        elif type(H[n][0]) == list:
-            H[n].append([c,i,master[i],master[i]])
         else:
-            H[n] = [H[n],[c,i,master[i],master[i]]]
+            if type(H[n][0]) == list:
+                flag = 2
+                H[n].append([c,i,master[i],master[i]])
+            else:
+                flag = 3
+                H[n] = [H[n],[c,i,master[i],master[i]]]
+        #if master[i] == [18,19,20,21,22,23,24,25]:
+        #    print("H(n)",H[n])
+         #   input(flag)
         c = c+1
     if not (boundaryrel == None):
         a = getBoundary(boundaryrel[0])
@@ -143,7 +150,6 @@ def setGenData(s,r = [],boundaryrel =None,steps = 0):
                 stepind+=1
             else:
                 x = coupleSimps(x,bound,steps)
-        print(x)
         r = r + x
     initializeRelations(r)
     makeBoundary(s)
@@ -198,7 +204,6 @@ def makeBoundary(s):
 def initializeRelations(Rel):#gets the full set of relations, and updates H with relation information for each simplex
     global H,deadsimps
     Rel = getAllRelations(Rel)
-    print(Rel)
     for a in Rel:
         for j in range(1,len(a)):
             deadsimps+=complexify(a[j])
@@ -207,6 +212,7 @@ def initializeRelations(Rel):#gets the full set of relations, and updates H with
         lor = s[0]
         for u in range(0,len(s)):
             k = h(s[u])%len(H)
+            #print("Simp",s[u],"hash",k,"table element",H[k],"\n")
             if type(H[k][0]) == list:
                 for x in range(0,len(H[k])):
                     if H[k][x][2] == s[u]:
@@ -328,3 +334,99 @@ def coupleSimps(s1,s2,parity = 0): #takes two lists of simplices and parity as e
         else:
             b += parity
     return rels
+
+
+def openData(n = 23,m= 13,filename = "ExampleData.txt"):
+    file = open(filename,"r")
+    txt = file.read()
+    file.close()
+    dat = []
+    dat = [[txt[2*i + j] for i in range(0,m) if (txt[2*i+j] != '\t' and txt[2*i+j] != '\n') ] for j in range(0,2*m*n,2*m)]
+    return Matrix(dat)
+
+def intersect(M,a,b): #returns list as [[i,pos1,pos2]]
+    intersection = []
+    ca = 0
+    cb = 0
+    for i in range(0,M.shape[0]):
+        if M[i,a] == 1:
+            ca = ca + 1
+        if M[i,b] == 1:
+            cb = cb + 1
+        if M[i,a] == 1 and M[i,b] == 1:
+            intersection.append((i,ca,cb))
+    return intersection
+
+
+def intersectAll(M): #returns the indexes of all intersections in the complexes from incidence matrix M
+    return [[intersect(M,i,j),i,j] for i in range(0,M.shape[1]) for j in range(0,i)]
+
+def findLargeSimp(M):
+    m = 0
+    for i in range(0,M.shape[1]):
+        size = 0
+        for j in range(0,M.shape[0]):
+            if M[j,i] == 1:
+                size = size + 1
+        if size>m:
+            m = size
+    return m
+
+def rowcount(M,i):
+    c = 0
+    for j in range(0,M.shape[0]):
+        if M[j,i] == 1:
+            c = c + 1
+    return c
+def genSimpDataFromMat(M):
+    I = intersectAll(M)
+    maxdim = findLargeSimp(M)
+    CompData = [[0,i] for i in range(0,maxdim)]
+    for i in range(0,M.shape[1]):
+        dim = rowcount(M,i) - 1
+        if dim>=0:
+            CompData[dim][0] = CompData[dim][0] + 1
+    return CompData
+
+
+def calcPosfromMat(M,i): #finds the position among simplex M[i] among homogenous simplices
+    count = 0
+    for j in range(0,i):
+        if rowcount(M,j) == rowcount(M,i):
+            count = count + 1
+    return count
+
+def simpStart(M,G,i,dim = None):#takes incidence matrix, genData and index i, and finds the unversal label of the first vertex of the simplex at column i in M
+    if dim == None:
+        dim = rowcount(M,i)
+    #print(i,j(G[0:dim-1],0) + calcPosfromMat(M,i))
+    return j(G[0:dim-1],0) + calcPosfromMat(M,i)*dim
+def getRelData(M,G,I): #gets relational data from incidence matrix
+    rels = []
+    for i in range(0,len(I)):
+        if len(I[i][0])>0:
+            matches = I[i][0]
+            #dim_subsimp = len(I[i][0]) - 1
+            dim_supersimp_i = rowcount(M,I[i][1])
+            dim_supersimp_j = rowcount(M,I[i][2])
+            v_i = simpStart(M,G,I[i][1],dim_supersimp_i)
+            v_j = simpStart(M,G,I[i][2],dim_supersimp_j)
+            simp1 = [v_i + matches[j][1]-1 for j in range(0,len(matches))]
+            simp2 = [v_j + matches[j][2]-1 for j in range(0,len(matches))]
+            #print("Simmps",simp1,simp2,"\n")
+            rels.append([simp1,simp2])
+    return rels
+
+def label(M,s,i):
+    d = len(s) - 1
+    l = calcPosfromMat(M,i)
+def BettiAll():
+    return [Betti(k) for k in range(0,len(D))]
+def incToBoundary(k,filename = "ExampleData.txt"): #reads incidence matrix off of text file, then converts to generating Data, then to Boundary matrix
+    m = openData(filename)                         #k bounds the maximum dimension a simplex can have
+    mm = m[0:k,0:m.shape[1]]                       #returns Betti numbers of the generated complex
+    i = intersectAll(mm)
+    g = genSimpDataFromMat(mm)
+    r = getRelData(mm,g,i)
+    setGenData(g,r)
+    return BettiAll()
