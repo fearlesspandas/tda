@@ -417,9 +417,6 @@ def getRelData(M,G,I): #gets relational data from incidence matrix
             rels.append([simp1,simp2])
     return rels
 
-def label(M,s,i):
-    d = len(s) - 1
-    l = calcPosfromMat(M,i)
 def BettiAll():
     return [Betti(k) for k in range(0,len(D))]
 def incToBoundary(k,filename = "ExampleData.txt"): #reads incidence matrix off of text file, then converts to generating Data, then to Boundary matrix
