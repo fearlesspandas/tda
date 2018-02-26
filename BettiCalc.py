@@ -1,20 +1,23 @@
 from sympy import *
 
+def isZero(v):
+    izzero = True
+    if type(v) == Matrix:
+        for i in range(0,max(v.shape[0],v.shape[1])):
+            if type(v[i]) != numbers.Zero:
+                izzero = False
+                return izzero
+
+    else:
+        for a in v:
+            if a != 0:
+                izzero = False
+                return izzero
+    return izzero
+
 def ker(k,mat): #takes matrix boundary list, and dimension k argument
-    m1 = mat[k]
-    b = m1.shape[0]
-    mi = eye(m1.shape[1])
-    m1 = m1.col_join(mi)
-    m = m1.T.rref()
-    ma = m[0].T
-    kermat = []
-    for i in range(0,min(b,len(m[1]))):
-        ma.row_del(0)
-        if m[1][0] < b:
-            m[1].remove(m[1][0])
-    for j in range(0,len(m[1])):
-        kermat.append(ma.col(ma.shape[1] -1 - j).T)
-    return Matrix(kermat).T
+    return Matrix([a.T for a in mat[k].nullspace()]).T
+
 def getdegree(mat,col): #matrix argument, not list of matrices
 	deg = 0
 	for i in range(0,mat.shape[0]):
