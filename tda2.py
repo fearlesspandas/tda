@@ -419,11 +419,182 @@ def getRelData(M,G,I): #gets relational data from incidence matrix
 
 def BettiAll():
     return [Betti(k) for k in range(0,len(D))]
-def incToBoundary(k,filename = "ExampleData.txt"): #reads incidence matrix off of text file, then converts to generating Data, then to Boundary matrix
-    m = openData(filename)                         #k bounds the maximum dimension a simplex can have
+def allHoles(): #returns list of bases for k-dimensional holes
+    return [holeBasis(k) for k in range(0,len(D))]
+def allHoles2():
+    return [holeBasis2(k) for k in range(0,len(D))]
+def isZero(v):
+    izzero = True
+    if type(v) == Matrix:
+        for i in range(0,max(v.shape[0],v.shape[1])):
+            if type(v[i]) != numbers.Zero:
+                izzero = False
+                return izzero
+
+    else:
+        for a in v:
+            if a != 0:
+                izzero = False
+                return izzero
+    return izzero
+
+
+global delete_vals,nonzeropos
+delete_vals = []
+nonzeropos = []
+def initialize_del_vals(k,n):
+    global delete_vals,nonzeropos
+    delete_vals = [0 for i in range(0,k)]
+    nonzeropos = [0 for i in range(0,n)]
+def clear_del_vals():
+    global delete_vals
+    delete_vals.clear()
+    nonzeropos.clear()
+
+def NonZero(v):
+    global delete_vals
+    nonZeroind = 0
+    if type(v) == Matrix:
+        for i in range(0,max(v.shape[0],v.shape[1])):
+            if (type(v[i]) != numbers.Zero) and delete_vals[i] == 0:
+                delete_vals[i] = 1
+                return i
+    else:
+        for i in range(0,len(v)):
+            if v[i] != 0 and delete_vals[i] == 0:
+                delete_vals[i] = 1
+                return i
+def NonZeroWrap(v,k):
+    global nonzeropos
+    nonzeropos[k] = NonZero(v)
+def getValueforCol(i):
+    return nonzeropos[k]
+
+def availableCol():
+    return (0 in delete_vals)
+def NonZero2(k,v):
+    nonZeroind = None #returns none if v is zero vector
+    kk = k
+    if type(v) == Matrix:
+        for i in range(0,max(v.shape[0],v.shape[1])):
+            if type(v[i]) != numbers.Zero:
+                kk = kk - 1
+                if kk == 0:
+                    nonZeroind = i
+                    break
+    else:
+        for i in range(0,len(v)):
+            if v[i] != 0 :
+                kk = kk - 1
+                if kk == 0:
+                    nonZeroind = i
+                    break
+    return nonZeroind
+
+def isInt(v):
+    izint = True
+    if type(v) == Matrix:
+        for i in range(0,max(v.shape[0],v.shape[1])):
+            if type(v[i]) != numbers.Zero and type(v[i]) != numbers.One and type(v[i]) != Integer:
+                izint = False
+                return izint
+    else:
+        for a in v:
+            if type(a) != int:
+                izint = False
+                return izint
+    return izint
+
+def holeBasis2(k,m = None): #returns a basis for holes of dimension k
+    if m == None:
+        m = D.copy()
+    if k>=len(m):
+        return 0
+    mm = ker(k,m)
+    #mm = m[k]
+    if k +1>= len(m):
+        return mm
+    else:
+        im = m[k+1]
+        for i in range(0,im.shape[1]):
+            if min(mm.shape[0],mm.shape[1],im.shape[0],im.shape[1])  == 0:
+                break
+            mmpinv = mm.pinv()
+            if mmpinv.shape[1] == im.col(i).shape[0]:
+                coeff = (mm.pinv())*(im.col(i))
+            else:
+                coeff = (im.col(i))*(mm.pinv())
+
+            #print(k,mm,im)
+            if (not isZero(coeff)) and isInt(coeff):
+                I = NonZero2(1,coeff)
+               # print("removedcol",mm.col(I),"I",I)
+                mm.col_del(I)
+        return mm
+
+def counter(c,b):
+    if b:
+        return c+1
+    else:
+        return c
+
+def pinv_solve(A,B):
+    A_pinv = A.pinv()
+    return A_pinv * B + (eye(A.cols) - A_pinv * A)
+'''
+    if arbitrary_matrix is None:
+        rows, cols = A.cols, B.cols
+        w = symbols('w:{0}_:{1}'.format(rows, cols), cls=Dummy)
+        arbitrary_matrix = Matrix.__class__(cols, rows, w).T
+'''
+
+def holeBasis(k,m=None):
+    if m == None:
+        m = D.copy()
+    if k>=len(m):
+        return 0
+    mm = ker(k,m)
+    #mm = m[k]
+    if k +1>= len(m):
+        return mm
+    else:
+        im = m[k+1]
+        A = mm.pinv()*im
+        clear_del_vals()
+        initialize_del_vals(A.shape[1],A.shape[1])
+        del_list = [NonZero(A.col(i)) for i in range(0,A.shape[1]) if (not(isZero(A.col(i)))) and isInt(A.col(i))  ]
+        del_set_list = list(set(del_list))
+        if None in del_set_list:
+            del_set_list.remove(None)
+        del_set_list.reverse()
+        #print(del_list)
+        #print(del_set_list)
+        count = 0
+        for d in del_set_list:
+            mm.col_del(d)
+        return mm
+
+def makeHole(k):
+    S = [[2,k]]
+    P = par(S)
+    R = coupleSimps(getBoundary(P[0]),getBoundary(P[1]))
+    setGenData(S,R)
+def incToBoundary(k,filenombre = "ExampleData.txt"): #reads incidence matrix off of text file, then converts to generating Data, then to Boundary matrix
+    m = openData(filename = filenombre)                         #k bounds the maximum dimension a simplex can have
     mm = m[0:k,0:m.shape[1]]                       #returns Betti numbers of the generated complex
     i = intersectAll(mm)
     g = genSimpDataFromMat(mm)
     r = getRelData(mm,g,i)
     setGenData(g,r)
-    return BettiAll()
+    return (BettiAll(),allHoles())
+
+def getSolution(Atemp,Btemp):
+    if Atemp.shape[0]<Btemp.shape[0]:
+        A = Atemp.col_join(zeros(Btemp.shape[0]-Atemp.shape[0],Atem.shape[1]))
+        B = Btemp
+    else:
+        A = Atemp
+        B =  Btemp.col_join(zeros(Atemp.shape[0]-Btemp.shape[0],Btemp.shape[1]))
+    A_pinv = A.pinv()
+    return A.pinv()*B
+    #return A_pinv * B + (eye(A.cols) - A_pinv * A)
