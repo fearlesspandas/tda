@@ -1,3 +1,5 @@
+#portions of this code may be out of direct use in TDA, however for the moment there are some functions that are still used.
+
 from sympy import *
 
 def isZero(v):
