@@ -9,3 +9,5 @@ a function to calculate Betti numbers/homology groups. Further, there is a built
 from incidence matrices to Generating Sets, as well as their associated boundary maps (algorithms
 for this also described in the above paper). The incidence matrix may be a more natural first step
 for constructing the Generating Set of a particular data set.
+
+tda.py does not require BettiCalc.py, however BettiCalc has some useful functions depending on context
