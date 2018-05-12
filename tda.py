@@ -22,7 +22,7 @@ def isLess(s,t): #lexicographical ordering boolean function for simplices. if s 
         return True
     return False
 
-import random, BettiCalc
+import random
 
 def MakeLex(l): #quicksort implimented with lexicographic ordering that also preferences size of simplices
     if len(l)<=1:
@@ -299,8 +299,8 @@ def Betti(k,m = None): #returns codimension of m[k+1] in the the kernel of m[k]
         imd = len(m[k+1].rref()[1])
     return mm.shape[1] - imd
 
-def ker(k,mat):
-    return BettiCalc.ker(k,mat)
+def ker(k,mat): #takes matrix boundary list, and dimension k argument
+    return Matrix([a.T for a in mat[k].nullspace()]).T
 
 def getBoundary(s):
     b = []
@@ -597,4 +597,3 @@ def getSolution(Atemp,Btemp):
         B =  Btemp.col_join(zeros(Atemp.shape[0]-Btemp.shape[0],Btemp.shape[1]))
     A_pinv = A.pinv()
     return A.pinv()*B
-    #return A_pinv * B + (eye(A.cols) - A_pinv * A)
